@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { toast } from "sonner"
 import api from "../api/instance";
 
-// Schema
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -29,9 +28,10 @@ const HomeLoginPage = () => {
     try {
       const response = await api.post('auth/login', data);
       login(response.data.token);
+      toast.success("User Login Successfully")
       navigate("/");
     } catch (error) {
-      console.error(error.response?.data || error.message);
+      toast.error(error.response?.data?.msg || error.message)
     }
   };
 

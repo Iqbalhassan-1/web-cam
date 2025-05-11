@@ -10,6 +10,8 @@ import api from "../api/instance";
 import ProfileCard from "../components/common/ProfileCard";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner"
+import { X } from "lucide-react";
 
 const userDataSchema = z.object({
   firstName: z.string().min(1, "First Name is required"),
@@ -26,6 +28,8 @@ const userDataSchema = z.object({
 
 
 const Home = () => {
+
+
   const [image, setImage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isImageSaved, setIsImageSaved] = useState(false);
@@ -68,7 +72,6 @@ const Home = () => {
   };
 
   const handleSubmitForm = async (data) => {
-    console.log("data", image)
     try {
       const formData = new FormData();
       formData.append('firstName', data.firstName);
@@ -83,12 +86,11 @@ const Home = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
+      toast.success(response?.data?.msg)
       handleReset()
       handleFormReset()
-
-      console.log('Response:', response.data);
     } catch (error) {
-      console.error('Submission failed:', error.response?.data || error.message);
+      toast.error(error)
     }
   };
   const [data, setData] = useState([]);
@@ -119,8 +121,6 @@ const Home = () => {
       const response = await api.get(`records/search?name=${searchQuery}`, {
         signal: controller.signal,
       });
-
-      console.log("API Response:", response);
       if (response.data && response.data.records) {
         setData(response.data.records);
       } else {
@@ -130,7 +130,7 @@ const Home = () => {
       if (axios.isCancel(error) || error.code === 'ERR_CANCELED') {
         console.log("Request was canceled");
       } else {
-        console.error("Error fetching data:", error);
+        toast.error(error)
       }
     } finally {
       setLoading(false);
@@ -144,32 +144,36 @@ const Home = () => {
 
   const handleLogout = () => {
     logout()
-  }
+    toast.success("Logout Successfully")
 
+  }
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 p-6 w-full">
       <header className="w-full bg-blue-500 text-white py-4 px-6 rounded-lg shadow-lg mb-10 flex justify-between items-center">
         <h1 className="text-xs md:text-2xl font-bold tracking-wide">NOVA AI TECH</h1>
         <div className="flex items-center gap-3">
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Name"
-            className="border-none focus:ring-none outline-none w-full sm:w-64 p-3 rounded-md shadow-sm"
-          />
-
-          {
-            searchQuery &&
-            <Button className="bg-blue-500 text-white hover:bg-blue-700 px-6 py-2 rounded-lg shadow-md" onClick={searchClear}>
-              Clear
-            </Button>
-          }
-          {
+          <div className="relative w-full sm:w-64">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Name"
+              className="pr-10 w-full p-3 rounded-md shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={searchClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-100 hover:text-gray-300"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
 
             <Button className="bg-blue-500 text-white hover:bg-blue-700 px-6 py-2 rounded-lg shadow-md" onClick={handleLogout}>
               Logout
             </Button>
-          }
+      
 
 
         </div>
