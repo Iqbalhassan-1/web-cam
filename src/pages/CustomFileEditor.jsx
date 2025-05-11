@@ -1,7 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { usePhotoEditor } from 'react-photo-editor';
-import { Button } from "@/components/ui/button"; // Optional: Adjust or replace
-import { Slider } from "@/components/ui/slider"; // Unused here
+import { Button } from "@/components/ui/button"
 
 const GreenSlider = ({ label, value, min, max, step = 1, onChange }) => {
   const percentage = ((value - min) / (max - min)) * 100;
@@ -27,7 +26,7 @@ const GreenSlider = ({ label, value, min, max, step = 1, onChange }) => {
   );
 };
 
-const CustomPhotoEditor = ({ onSave }) => {
+const CustomPhotoEditor = forwardRef(({ onSave, isImageSaved, setIsImageSaved }, ref) => {
   const videoRef = useRef(null);
   const canvasCaptureRef = useRef(null);
 
@@ -76,7 +75,6 @@ const CustomPhotoEditor = ({ onSave }) => {
   };
   const {
     canvasRef,
-    imageSrc,
     brightness,
     setBrightness,
     contrast,
@@ -103,7 +101,6 @@ const CustomPhotoEditor = ({ onSave }) => {
     handlePointerUp,
     handlePointerMove,
     handleWheel,
-    downloadImage,
     resetFilters,
   } = usePhotoEditor({ file });
   const retakeImage = () => {
@@ -111,16 +108,41 @@ const CustomPhotoEditor = ({ onSave }) => {
     setIsCaptured(false);
     resetFilters()
     startCamera();
+    setIsImageSaved(false)
   };
+
+  const resultImageform = () => {
+    resetFilters()
+    setIsImageSaved(false)
+  }
+  const fullReset = () => {
+    retakeImage()
+    resultImageform()
+  }
+  useImperativeHandle(ref, () => ({
+    fullReset
+  }));
 
 
 
   const handleSave = () => {
-    const result = canvasRef.current?.toDataURL();
-    if (result) {
-      onSave(result);
+    const dataUrl = canvasRef.current?.toDataURL();
+    if (!dataUrl) return;
+    const byteString = atob(dataUrl.split(',')[1]);
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
     }
+    const blob = new Blob([ab], { type: mimeString });
+    const fileFromCanvas = new File([blob], 'edited-image.jpg', { type: mimeString });
+
+    onSave(fileFromCanvas);
   };
+
+
+
 
   return (
     <>
@@ -146,7 +168,6 @@ const CustomPhotoEditor = ({ onSave }) => {
       `}</style>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
-        {/* Left side */}
         <div className="flex flex-col items-center justify-center">
           {!isCaptured ? (
             <>
@@ -155,30 +176,28 @@ const CustomPhotoEditor = ({ onSave }) => {
               <canvas ref={canvasCaptureRef} className="hidden" />
             </>
           ) : (
-     <>
-  <div className="relative w-full flex justify-center items-center">
-    <canvas
-      ref={canvasRef}
-      className="w-full"
-      style={{ maxHeight: '100%', touchAction: 'none' }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onWheel={handleWheel}
-    />
-    <Button
-      onClick={retakeImage}
-      className="absolute -bottom-10 bg-red-600 text-white"
-    >
-      Retake
-    </Button>
-  </div>
-</>
+            <>
+              <div className="relative w-full flex justify-center items-center">
+                <canvas
+                  ref={canvasRef}
+                  className="w-full"
+                  style={{ maxHeight: '100%', touchAction: 'none' }}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onWheel={handleWheel}
+                />
+                <Button
+                  onClick={retakeImage}
+                  className="absolute -bottom-10 bg-red-600 text-white"
+                >
+                  Retake
+                </Button>
+              </div>
+            </>
 
           )}
         </div>
-
-        {/* Right side */}
         {isCaptured && (
           <div className="flex flex-col space-y-4 mt-10">
             <GreenSlider label="Brightness" value={brightness} min={0} max={200} onChange={(e) => setBrightness(Number(e.target.value))} />
@@ -213,16 +232,16 @@ const CustomPhotoEditor = ({ onSave }) => {
             </div>
 
             <div className="flex space-x-4">
-              <Button onClick={resetFilters} 
-                    className="text-white bg-gray-500 hover:bg-gray-400 rounded-lg shadow-md"
+              <Button onClick={resultImageform}
+                className="text-white bg-gray-500 hover:bg-gray-400 rounded-lg shadow-md"
               >Reset</Button>
-              <Button onClick={handleSave} className="bg-blue-500 text-white">Save</Button>
+              <Button onClick={handleSave} className="bg-blue-500 text-white" disabled={isImageSaved}>Save</Button>
             </div>
           </div>
         )}
       </div>
     </>
   );
-};
+})
 
 export default CustomPhotoEditor;

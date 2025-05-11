@@ -2,53 +2,82 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import api from "../api/instance";
 
-// Zod schema for validation
+// Schema
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 const HomeLoginPage = () => {
-//   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { login } = useAuth()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(loginSchema),
   });
-
-  const onSubmit = (data) => {
-    // Handle login logic (e.g., API call)
-    console.log(data);
-    // navigate("/home"); // Redirect to home page after login
+  const navigate = useNavigate()
+  const onSubmit = async (data) => {
+    try {
+      const response = await api.post('auth/login', data);
+      login(response.data.token);
+      navigate("/");
+    } catch (error) {
+      console.error(error.response?.data || error.message);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-background text-foreground">
-      <h1 className="text-3xl font-semibold mb-6">NOVA AI TECH</h1>
-      <form className="bg-white p-6 rounded-lg shadow-lg w-80" onSubmit={handleSubmit(onSubmit)}>
-        <div className="mb-4">
-          <Input
-            {...register("username")}
-            placeholder="Username"
-            className="w-full p-2 mb-2 border border-gray-300 rounded"
-          />
-          {errors.username && <p className="text-red-500 text-xs">{errors.username.message}</p>}
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-blue-200 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm p-8 bg-white shadow-2xl rounded-3xl border border-gray-200">
+        <h1 className="text-3xl font-bold text-center text-blue-600 mb-8 tracking-wide">
+          NOVA AI TECH
+        </h1>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <Input
+              {...register("email")}
+              placeholder="Email"
+              className="w-full px-4 py-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-400"
+            />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Input
+              {...register("password")}
+              type="password"
+              placeholder="Password"
+              className="w-full px-4 py-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-400"
+            />
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg shadow-lg transition-all duration-200"
+          >
+            Login
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center text-sm text-gray-500">
+          Don't have an account? <a href="/signup" className="text-blue-600 hover:underline">Sign up</a>
         </div>
-        <div className="mb-4">
-          <Input
-            {...register("password")}
-            type="password"
-            placeholder="Password"
-            className="w-full p-2 mb-2 border border-gray-300 rounded"
-          />
-          {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
-        </div>
-        <Button type="submit" className="w-full bg-primary text-white py-2 rounded">
-          Login
-        </Button>
-      </form>
+      </div>
     </div>
   );
 };
